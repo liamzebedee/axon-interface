@@ -12,7 +12,7 @@ function MyApp({ Component, pageProps }) {
     <Head>
       <link rel="apple-touch-icon" href="apple-touch-icon.png"></link>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"></link>
-      <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js" async={true}></script>
     </Head>
     
     <QueryClientProvider client={queryClient}>

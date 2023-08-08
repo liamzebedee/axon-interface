@@ -67,8 +67,8 @@ function UI() {
           </p>
           <div className={styles.poolCardList}>
           {
-            pools.map(pool => {
-              return <PoolCard {...pool} />
+            pools.map((pool) => {
+              return <PoolCard key={pool.id} {...pool} />
             })
           }
           </div>

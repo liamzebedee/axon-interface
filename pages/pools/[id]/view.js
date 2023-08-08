@@ -194,8 +194,8 @@ function UI({ id }) {
                             </thead>
                             <tbody>
                                 {
-                                    pool.files.map(file => {
-                                        return <tr>
+                                    pool.files.map((file, i) => {
+                                        return <tr key={i}>
                                             <td>{file.name}</td>
                                         </tr>
                                     })
