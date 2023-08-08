@@ -31,7 +31,7 @@ import { SimpleLineChart } from '../../../components/chart'
 // })
 
 
-import useDemoConfig  from './demo.tsx'
+
 
 
 function UI({ id }) {
