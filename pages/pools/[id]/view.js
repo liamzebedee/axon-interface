@@ -13,7 +13,6 @@ import { polygon } from 'wagmi/chains';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
-import { AxisOptions, Chart } from "react-charts";
 import NoSSR from 'react-no-ssr';
 
 import { 
