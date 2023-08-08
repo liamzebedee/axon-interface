@@ -21,7 +21,7 @@ import {
  } from "react-icons/vsc";
 
 
-import { SimpleLineChart } from './chart'
+import { SimpleLineChart } from '../../../components/chart'
 
 // import WebTorrent from 'webtorrent'
 // import dynamic from 'next/dynamic'

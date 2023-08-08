@@ -52,12 +52,11 @@ const initialData = [...Array(30).keys()].map(i => {
     }
 });
 
-console.log(initialData)
 
 export function SimpleLineChart() {
     // const xAccessor = d => d.date;
-    
-    
+
+
     const xScaleProvider = discontinuousTimeScaleProvider
         .inputDateAccessor(d => d.date);
     const {
@@ -92,9 +91,9 @@ export function SimpleLineChart() {
             <Chart id={0} yExtents={d => d.value}>
                 {/* <XAxis axisAt="bottom" orient="bottom" ticks={6} tickFormat={timeFormat("%Y-%m-%d")} />
                 <YAxis axisAt="left" orient="left" ticks={5} /> */}
-                <XAxis 
-                    axisAt="bottom" 
-                    orient="bottom" 
+                <XAxis
+                    axisAt="bottom"
+                    orient="bottom"
                     ticks={7}
                 />
                 <YAxis
