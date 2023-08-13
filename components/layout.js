@@ -1,9 +1,4 @@
-
-/*
-Rainbow & wagmi
-*/
 import '@rainbow-me/rainbowkit/styles.css';
-
 import {
     ConnectButton,
     createAuthenticationAdapter,
@@ -12,26 +7,35 @@ import {
     RainbowKitProvider,
 } from '@rainbow-me/rainbowkit';
 import { configureChains, createClient, useAccount, WagmiConfig, useSigner } from 'wagmi';
-import { mainnet, polygon, optimism, arbitrum } from 'wagmi/chains';
+import { mainnet, foundry, optimism } from 'wagmi/chains';
 import { getContract, getProvider } from '@wagmi/core'
 import { alchemyProvider } from 'wagmi/providers/alchemy';
 import { publicProvider } from 'wagmi/providers/public';
 import Header from '../components/header';
+import { jsonRpcProvider } from '@wagmi/core/providers/jsonRpc'
 
 import { useNetwork } from 'wagmi'
 import { useEffect, useState  } from 'react'
 import { SiweMessage  } from 'siwe'
 
+
 const { chains, provider } = configureChains(
-    [polygon],
+    [foundry],
     [
-        publicProvider()
+        publicProvider(),
+        jsonRpcProvider({
+            rpc: (chain) => ({
+                http: `https://localhost:8545`,
+            }),
+        }),
     ]
 );
 
+import { APP_NAME  } from '../common/config'
+
 const { connectors } = getDefaultWallets({
-    appName: 'take',
-    chains: [polygon]
+    appName: APP_NAME,
+    chains: [foundry]
 });
 
 const wagmiClient = createClient({
@@ -44,8 +48,8 @@ const wagmiClient = createClient({
 const authenticationAdapter = ({ onVerify }) => createAuthenticationAdapter({
     getNonce: async () => {
         return '1'.repeat(16)
-        const response = await fetch('/api/nonce');
-        return await response.text();
+        // const response = await fetch('/api/nonce');
+        // return await response.text();
     },
 
     createMessage: ({ nonce, address, chainId }) => {
@@ -67,25 +71,27 @@ const authenticationAdapter = ({ onVerify }) => createAuthenticationAdapter({
     },
 
     verify: async ({ message, signature }) => {
-        const verifyRes = await fetch(`/api/v1/auth/login/`, {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json',
-                // 'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value,
-            },
-            body: JSON.stringify({ message, signature }),
-            credentials: 'include'
-        });
+        // const verifyRes = await fetch(`/api/v1/auth/login/`, {
+        //     method: "POST",
+        //     headers: {
+        //         'Content-Type': 'application/json',
+        //     },
+        //     body: JSON.stringify({ message, signature }),
+        //     credentials: 'include'
+        // });
 
-        const res = await verifyRes.json()
+        // const res = await verifyRes.json()
+
+        const ok = true
         // onVerify(true)
-        onVerify(res.ok)
+        onVerify(ok)
 
-        return res.ok
+        return ok
     },
 
     signOut: async () => {
-        await fetch('/api/logout');
+        // await fetch('/api/logout');
+        return
     },
 });
 
@@ -102,10 +108,10 @@ export const AppLayout = ({ children }) => {
                 adapter={authenticationAdapter({ onVerify })}
                 status={authStatus}
                 appInfo={{
-                    appName: 'Dappnet Install Point',
+                    appName: APP_NAME,
                 }}
             >
-                <RainbowKitProvider modalSize="compact" chains={chains} initialChain={polygon}>
+                <RainbowKitProvider modalSize="compact" chains={chains} initialChain={foundry}>
                     <Body>{children}</Body>
                 </RainbowKitProvider>
 
@@ -115,33 +121,6 @@ export const AppLayout = ({ children }) => {
 }
 
 const Body = ({ children }) => {
-    // check isConnected
-    // const { isConnected } = useAccount()
-    // const { chain } = useNetwork()
-    // // const x = useNetwork()
-    // const { chains, error, isLoading, pendingChainId, switchNetwork } =
-    //     useSwitchNetwork()
-
-    // console.log(x)
-    // console.log(switchNetwork)
-    
-    // // switch to polygon if not already on it
-    // useEffect(() => {
-    //     if (chain?.id !== polygon.id || pendingChainId !== polygon.id) {
-    //         switchNetwork(polygon)
-    //     }
-    // }, [chain, switchNetwork])
-
-
-    // const { chain } = useNetwork()
-    
-    // switch to polygon if not already on it
-    // useEffect(() => {
-    //     if (chain?.id !== polygon.id || pendingChainId !== polygon.id) {
-    //         switchNetwork(polygon)
-    //     }
-    // }, [chain, switchNetwork])
-
     return <>
         {children}
     </>

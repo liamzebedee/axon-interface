@@ -4,12 +4,12 @@ import { AppLayout } from '../../../components/layout';
 import styles from '../../../styles/Pool.module.css';
 import layoutStyles from '../../../styles/Layout.module.css';
 
-import { useAccount, useContractWrite, usePrepareContractWrite, useSigner, useWaitForTransaction } from 'wagmi';
+import { useAccount, useClient, useContractWrite, usePrepareContractWrite, useProvider, useSigner, useWaitForTransaction } from 'wagmi';
 import { getContract } from '@wagmi/core';
 import Header from '../../../components/header';
 import { useDebounce } from '../../../components/util';
 import { ethers } from 'ethers';
-import { polygon } from 'wagmi/chains';
+import { hardhat, polygon } from 'wagmi/chains';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
@@ -18,34 +18,41 @@ import NoSSR from 'react-no-ssr';
 import { 
     VscCloudDownload,
     VscCloudUpload
- } from "react-icons/vsc";
-
-
+} from "react-icons/vsc";
 import { SimpleLineChart } from '../../../components/chart'
 
-// import WebTorrent from 'webtorrent'
-// import dynamic from 'next/dynamic'
 
-// const DynamicHeader = dynamic(() => import('../components/header'), {
-//     loading: () => <p>Loading...</p>,
-// })
+import deployments from '../../../chain/deployments/local.json'
+
+const byteSize = require('byte-size')
 
 
+import { readContract } from '@wagmi/core'
+import { multicall, watchMulticall, watchContractEvent } from '@wagmi/core'
+import { createPublicClient, http, parseAbiItem } from 'viem'
+import classNames from 'classnames';
 
+import parseTorrent from 'parse-torrent'
+
+export const publicClient = createPublicClient({
+    chain: hardhat,
+    transport: http()
+})
 
 
 function UI({ id }) {
     const account = useAccount()
     const { data: signer, isError, isLoading } = useSigner()
+    const provider = useProvider()
     const router = useRouter()
 
-    const pool = {
+    const [isMember, setIsMember] = useState(false)
+    const [pool, setPool] = useState({
         id: 0,
         name: "Pool 0",
         ticker: "POOL0",
         description: "Yo man this is the pool for hosting dumb jpegs in.",
         torrents: [
-            {},
         ],
         files: [
             {
@@ -53,13 +60,130 @@ function UI({ id }) {
                 name: "sintel.mp4"
             }
         ],
+        numMembers: 0,
         members: [
             {},
             {},
         ],
         admin: "0x" + "0".repeat(40),
-        isMember: false,
-    }
+        rewardModule: null,
+    })
+
+    // Upload measured in bytes.
+    const [upload, setUpload] = useState(0)
+    // Rewards measured in ether (18 decimals).
+    const [rewards, setRewards] = useState(0)
+
+    useEffect(() => {
+        if (!account.address) return
+        if (!pool.rewardModule) return
+
+        // Long poll the API server to get the upload/download.
+        const interval = setInterval(async () => {
+            const response = await fetch(`http://0.0.0.0:24338/upload-stats?node_id=${account.address}`)
+            const json = await response.json()
+
+            // Calculate unclaimed rewards.
+            const RewardsModule = new ethers.Contract(
+                pool.rewardModule,
+                [
+                    `function unclaimedRewards(address account, uint256 upload) external view returns (uint256)`
+                ],
+                provider
+            )
+
+            const rewardsBN = await RewardsModule.unclaimedRewards(account.address, json.upload)
+
+            setUpload(json.upload)
+            setRewards(rewardsBN.toString())
+        }, 1000)
+
+        return () => clearInterval(interval)
+    }, [pool.rewardModule, account.address])
+
+    
+    useEffect(() => {
+        (async function() {
+            const poolId = '0' // TODO:axon
+
+            const [
+                name,
+                ticker,
+                description,
+                owner,
+                numTorrents,
+                numMembers,
+                rewardModule,
+            ] = await readContract({
+                address: deployments.System.address,
+                abi: deployments.System.abi,
+                functionName: 'getPoolInfo',
+                args: [poolId],
+            })
+
+            const isMember = await readContract({
+                address: deployments.System.address,
+                abi: deployments.System.abi,
+                functionName: 'isMember',
+                args: [poolId, account.address],
+            })
+
+
+            // Now load all the torrent events for the pool.
+            const logs = await publicClient.getLogs({
+                address: deployments.System.address,
+                event: parseAbiItem('event Torrent(uint256 indexed poolId, bytes32 indexed exactTopic, string uri, bool live)'),
+                fromBlock: 0n,
+                toBlock: 'latest'
+            })
+            
+            const torrentURIs = new Set()
+            logs.forEach(event => {
+                const { exactTopic, uri, live } = event.args
+                // TODO:axon verify exactTopic in URI
+                if (live) torrentURIs.add(uri)
+                else torrentURIs.delete(uri)
+            })
+
+            setPool({
+                ...pool,
+                name,
+                ticker,
+                admin: owner,
+                description,
+                numTorrents: numTorrents.toNumber(),
+                numMembers: numMembers.toNumber(),
+                rewardModule,
+                torrents: [...torrentURIs],
+            })
+            setIsMember(isMember)
+            console.log('isMember', isMember)
+
+            const System = new ethers.Contract(
+                deployments.System.address,
+                deployments.System.abi,
+                provider
+            )
+
+            // WORKAROUND: ethers.js replaying events from 1 block in the past on Hardhat
+            // https://github.com/ethers-io/ethers.js/discussions/1939 
+            const startBlockNumber = await provider.getBlockNumber();
+            const isEventInPast = (event) => {
+                if (event.blockNumber <= startBlockNumber) return true;
+                return false
+            }
+
+            System.on('PoolMember', (poolId, member, isMember, event) => {
+                if (isEventInPast(event)) return
+
+                console.log('PoolMember', {poolId, member, isMember})
+
+                if(member == account.address) {
+                    setIsMember(isMember)
+                }
+            })
+        })()
+    }, [])
 
     const shortenAddress = (address) => {
         return address.slice(0, 6) + "..." + address.slice(-4)
@@ -69,7 +193,6 @@ function UI({ id }) {
         <div className={layoutStyles.container}>
             <Head>
                 <title>{pool.name} &middot; axon</title>
-                <meta name="description" content="hot takes" />
                 <link rel="icon" href="/favicon.ico" />
             </Head>
 
@@ -77,9 +200,9 @@ function UI({ id }) {
 
             <main className={layoutStyles.main}>
                 <header>
-                    <div className={layoutStyles.backTo} onClick={() => router.push('/')}>
+                    <div className={layoutStyles.backTo} onClick={() => router.push('/pools')}>
                         <Image src="/back.png" width={48} height={48} />
-                        <span> Back to <Link href="/">dashboard</Link></span>
+                        <span> Back to <Link href="/pools/">pools</Link></span>
                     </div>
                 </header>
 
@@ -92,9 +215,10 @@ function UI({ id }) {
                         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
                         <span>Created by {shortenAddress(pool.admin)}</span>
                         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-                        <span>{pool.members.length} members</span>
+                        {/* <span>{pool.members.length} members</span> */}
+                        <span>{pool.numMembers} members</span>
                         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-                        <span>{pool.torrents.length} torrents</span>
+                        <span>{pool.numTorrents} torrents</span>
                     </span>
                 </div>
 
@@ -108,50 +232,7 @@ function UI({ id }) {
                         </header>
                         <p>How much people are downloading this dataset. More downloads = more rewards.</p>
                         <NoSSR>
-                            {/* <Chart/> */}
                             <div className={styles.poolChartContainer}>
-                                {/* <ResponsiveContainer width="100%" height="100%"> */}
-                                    {/* <LineChart
-                                        width={900}
-                                        height={300}
-                                        data={data}
-                                        
-                                    >
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis 
-                                            dataKey="name" 
-                                            stroke="black"
-                                            wrapperStyle={{
-                                                fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;",
-                                                stroke: "black",
-                                            }}
-                                        />
-                                        <YAxis 
-                                            stroke="black"
-                                            wrapperStyle={{
-                                                fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;",
-                                                stroke: "black",
-                                            }}
-                                        />
-                                        <Tooltip 
-                                            wrapperStyle={{
-                                                margin: "0 auto",
-                                                fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;",
-                                                stroke: "black",
-                                            }}
-                                        />
-                                        <Legend 
-                                            wrapperStyle={{
-                                                fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;",
-                                                stroke: "black",
-                                            }}
-                                        />
-                                        <Line type="monotone" dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} />
-                                        <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
-                                    </LineChart> */}
-                                {/* </ResponsiveContainer> */}
-
-
                                 <SimpleLineChart />
                             </div>
                         </NoSSR>
@@ -168,15 +249,21 @@ function UI({ id }) {
 
                         <div className={styles.statDetail}>
                             <header>Your Upload</header>
-                            <span>200 KB</span>
+                            <span>{byteSize(upload).toString()}</span>
                         </div>
                         <div className={styles.statDetail}>
                             <header>Rewards</header>
-                            <span>52.7 $DAPP</span>
+                            <span>{rewards} ${pool.ticker}</span>
                         </div>
                         <div>
-                            <button className={styles.btn}>Claim</button>&nbsp;
-                            <button className={styles.btn}>Leave</button>
+                            <button 
+                                className={styles.btn} 
+                                disabled={isMember == false}
+                            >
+                                Claim
+                            </button>&nbsp;
+                            
+                            <JoinLeaveButton poolId={pool.id} isMember={isMember}/>
                         </div>
                     </div>
 
@@ -189,13 +276,24 @@ function UI({ id }) {
                             <thead>
                                 <tr>
                                     <th>Name</th>
+                                    <th>Torrent</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {
-                                    pool.files.map((file, i) => {
+                                    pool.torrents.map((torrent, i) => {
+                                        // Parse torrent URI
+                                        // Extract the dn parameter.
+                                        const url = new URL(torrent)
+                                        const dn = url.searchParams.get('dn')
+                                        const xt = url.searchParams.get('dn')
+                                        // console.log(parsed)
+
                                         return <tr key={i}>
-                                            <td>{file.name}</td>
+                                            <td>{dn}</td>
+                                            <td>
+                                                <Link href={`/pools/${id}/download?magnet_uri=${encodeURIComponent(torrent)}&poolLabel=${encodeURIComponent(pool.ticker)}`}>{torrent}</Link>
+                                            </td>
                                         </tr>
                                     })
                                 }
@@ -217,6 +315,42 @@ function UI({ id }) {
     )
 
     return ui
+}
+
+const JoinLeaveButton = (props) => {
+    const { poolId, isMember } = props
+    
+    const account = useAccount()
+    const { data: signer, isError } = useSigner()
+
+    const { config } = usePrepareContractWrite({
+        address: deployments.System.address,
+        abi: deployments.System.abi,
+        functionName: 'joinLeavePool',
+        args: [poolId, !isMember]
+    })
+
+    const { data, write, isLoading: isWriteLoading } = useContractWrite(config)
+    const { isLoading: isTxConfirming, isSuccess, data: txReceipt } = useWaitForTransaction({
+        hash: data && data.hash,
+    })
+
+    const onClick = async () => {
+        await write()
+    }
+
+    return <button
+        className={classNames(
+            styles.btn,
+            {
+                [styles.btnLoading]: isTxConfirming
+            }
+        )}
+        onClick={onClick}
+        disabled={isWriteLoading || isTxConfirming}
+    >
+        {isMember ? "Leave" : "Join"}
+    </button>
 }
 
 const PoolCard = ({ id, name, ticker, description }) => {

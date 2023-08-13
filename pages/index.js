@@ -46,7 +46,7 @@ function UI() {
     <div className={layoutStyles.container}>
       <Head>
         <title>axon &middot; dashboard</title>
-        <meta name="description" content="hot takes" />
+        <meta name="description" content="some people are earning tokens for file-sharing tn, do you wanna come along?" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
@@ -61,24 +61,22 @@ function UI() {
           This interface allows you to join/leave pools, and your node will automatically start seeding the files in that pool.
         </p>
 
-        <div>
-          <h2>Pools</h2>
-          <p>
-          </p>
-          <div className={styles.poolCardList}>
-          {
-            pools.map((pool) => {
-              return <PoolCard key={pool.id} {...pool} />
-            })
-          }
-          </div>
-        </div>
-
         {/* <div>
-          <h2>Earnings</h2>
-          <div className={styles.earningsCard}>
-            <span></span>
-          </div>
+          <h2>Rewards</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Pool</th>
+                <th>Token</th>
+                <th>Balance</th>
+                <th>Claim</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+
+          </table>
         </div> */}
       </main>
 

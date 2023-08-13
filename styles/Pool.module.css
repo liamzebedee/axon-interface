@@ -95,13 +95,18 @@
     transition: all 50ms;
 }
 
+.btnLoading {
+    /* animate opacity fade in and out 250ms */
+    animation: fade 250ms;
+}
+
 .btn:hover {
     background-color: #ff2a8d;
     opacity: 0.8;
 }
 
 .btn:disabled {
-    background-color: #ff2a8d;
+    /* background-color: #ff2a8d; */
     opacity: 0.5;
     cursor: not-allowed;
 }

@@ -122,6 +122,7 @@ export default function Header() {
     const router = useRouter()
     const isDash = router.pathname == "/"
     const isPools = router.pathname.startsWith("/pools")
+    const isRunANode = router.pathname.startsWith("/docs/run-a-node")
     const isLiterallyAnythingElse = !isDash && !isPools
 
     const account = useAccount()
@@ -151,9 +152,13 @@ export default function Header() {
                     <Link href="/">Dashboard</Link>
                 </li>
                 <li className={classNames({ [menuLiActive]: isPools })}>
-                    {/* <Link href="/pools">Pools</Link> */}
-                    Pools
+                    <Link href="/pools">Pools</Link>
                 </li>
+                <li className={classNames({ [menuLiActive]: isRunANode })}>
+                    {/* <Link href="/pools">Pools</Link> */}
+                    <Link href="/docs/run-a-node">Run a node</Link>
+                </li>
+                
                 {/* <li>
                     <Link href="https://t.me/+l_mrM707TIg1ZTA9">tg chat</Link>
                 </li>
