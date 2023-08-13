@@ -25,7 +25,7 @@
 
 .poolTicker {
     font-size: 1rem;
-    font-family: monospace;
+    font-family: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
 }
 
 .poolMeta {
@@ -73,7 +73,7 @@
 .statDetail span {
     font-size: 1.6rem;
     font-weight: 500;
-    font-family: monospace;
+    font-family: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
 }
 
 .poolFiles {

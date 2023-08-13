@@ -104,18 +104,18 @@ export const AppLayout = ({ children }) => {
 
     return (
         <WagmiConfig client={wagmiClient}>
-            <RainbowKitAuthenticationProvider
+            {/* <RainbowKitAuthenticationProvider
                 adapter={authenticationAdapter({ onVerify })}
                 status={authStatus}
                 appInfo={{
                     appName: APP_NAME,
                 }}
-            >
+            > */}
                 <RainbowKitProvider modalSize="compact" chains={chains} initialChain={foundry}>
                     <Body>{children}</Body>
                 </RainbowKitProvider>
 
-            </RainbowKitAuthenticationProvider>
+            {/* </RainbowKitAuthenticationProvider> */}
         </WagmiConfig>
     )
 }

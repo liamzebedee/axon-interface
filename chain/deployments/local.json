@@ -492,8 +492,8 @@
                 "type": "function"
             }
         ],
-        "address": "0xdb54fa574a3e8c6aC784e1a5cdB575A737622CFf",
-        "deployBlock": 391
+        "address": "0xe044814c9eD1e6442Af956a817c161192cBaE98F",
+        "deployBlock": 400
     },
     "AxonToken": {
         "version": 1,
@@ -808,7 +808,7 @@
                 "type": "function"
             }
         ],
-        "address": "0xccA9728291bC98ff4F97EF57Be3466227b0eb06C",
-        "deployBlock": 393
+        "address": "0x4ff1f64683785E0460c24A4EF78D582C2488704f",
+        "deployBlock": 402
     }
 }

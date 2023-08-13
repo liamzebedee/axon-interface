@@ -57,7 +57,7 @@ function UI() {
             <Header />
 
             <main className={layoutStyles.main}>
-                {/* <span style={{ fontSize: "2.8rem", fontFamily: "monospace", fontWeight: '700' }}>axon</span> */}
+                {/* <span style={{ fontSize: "2.8rem", fontFamily: fontFamily: `"Roboto Mono", monospace`, fontWeight: '700' }}>axon</span> */}
                 {/* <p>
                     Each pool is a community of people who are hosting files together. Anyone can create a pool, and design their own tokenomics for it.
                 </p> */}

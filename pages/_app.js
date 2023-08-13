@@ -13,8 +13,31 @@ function MyApp({ Component, pageProps }) {
     <Head>
       <link rel="apple-touch-icon" href="apple-touch-icon.png"></link>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"></link>
-      {/* <Script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js" strategy="beforeInteractive" /> */}
-      <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js" async={false}></script>
+      
+      {/* Load all of these sync (blocking) */}
+
+      {/* Webtorrent.js */}
+      {/* <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js" async={false}></script> */}
+      <script src="https://cdn.jsdelivr.net/npm/webtorrent@1.8.0/webtorrent.min.js" async={false}></script>
+      
+      {/* <script src="https://cdn.jsdelivr.net/npm/webtorrent@2.1.20/dist/sw.min.js"></script> */}
+
+      {/* <script>
+        {`
+          {
+            // add the webtorrent script to the head
+            const script = document.createElement('script');
+            script.src = "https://cdn.jsdelivr.net/npm/webtorrent@2.1.20/dist/webtorrent.min.js";
+            script.async = false;
+            document.head.appendChild(script);
+            alert(1)
+          }
+        `}
+      </script> */}
+      
+      {/* Video.js */}
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/video.js/7.8.1/video.min.js"></script>
+      <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/video.js/7.8.1/video-js.min.css" />
     </Head>
     
     <QueryClientProvider client={queryClient}>
