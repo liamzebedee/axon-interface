@@ -33,6 +33,7 @@ import { createPublicClient, http, parseAbiItem } from 'viem'
 import classNames from 'classnames';
 
 import parseTorrent from 'parse-torrent'
+import { AGGREGATOR_SERVER } from '../../../common/config';
 
 export const publicClient = createPublicClient({
     chain: hardhat,
@@ -80,7 +81,7 @@ function UI({ id }) {
 
         // Long poll the API server to get the upload/download.
         const interval = setInterval(async () => {
-            const response = await fetch(`http://0.0.0.0:24338/upload-stats?node_id=${account.address}`)
+            const response = await fetch(`${AGGREGATOR_SERVER}/upload-stats?node_id=${account.address}`)
             const json = await response.json()
 
             // Calculate unclaimed rewards.
@@ -272,7 +273,7 @@ function UI({ id }) {
                 <div className={styles.poolFiles}>
                     <h2>Files</h2>
                     <div>
-                        <table>
+                        <table className={styles.poolFilesTable}>
                             <thead>
                                 <tr>
                                     <th>Name</th>
@@ -287,12 +288,16 @@ function UI({ id }) {
                                         const url = new URL(torrent)
                                         const dn = url.searchParams.get('dn')
                                         const xt = url.searchParams.get('dn')
+                                        const downloadHref = `/pools/${id}/download?magnet_uri=${encodeURIComponent(torrent)}&poolLabel=${encodeURIComponent(pool.ticker)}`
                                         // console.log(parsed)
 
                                         return <tr key={i}>
                                             <td>{dn}</td>
                                             <td>
-                                                <Link href={`/pools/${id}/download?magnet_uri=${encodeURIComponent(torrent)}&poolLabel=${encodeURIComponent(pool.ticker)}`}>{torrent}</Link>
+                                                <button className={styles.btn} onClick={() => router.push(downloadHref)}>
+                                                    View
+                                                </button>
+                                                {/* <Link href={}>View file</Link> */}
                                             </td>
                                         </tr>
                                     })

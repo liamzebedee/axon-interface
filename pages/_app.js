@@ -3,6 +3,7 @@ import Head from 'next/head'
 import React from 'react'
 import '../styles/globals.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
+import Script from 'next/script'
 
 const queryClient = new QueryClient()
 
@@ -12,7 +13,8 @@ function MyApp({ Component, pageProps }) {
     <Head>
       <link rel="apple-touch-icon" href="apple-touch-icon.png"></link>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"></link>
-      <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js" async={true}></script>
+      {/* <Script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js" strategy="beforeInteractive" /> */}
+      <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js" async={false}></script>
     </Head>
     
     <QueryClientProvider client={queryClient}>

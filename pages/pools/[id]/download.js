@@ -27,8 +27,91 @@ import { createPublicClient, http, parseAbiItem } from 'viem'
 import classNames from 'classnames';
 import { useRef } from 'react';
 import dynamic from 'next/dynamic'
+import Script from 'next/script'
+import parseTorrent from 'parse-torrent'
 
+
+let client
+const getWebTorrentClient = async () => {
+    if (!client) {
+        client = new WebTorrent()
+    }
+    return client
+}
 let torrent$
+
+
+
+async function loadWebTorrent(magnet_uri, setDLProgress, el) {
+    // Load WebTorrent from the <head> in _app.js.
+    // This is because I haven't figured out how to get it to play nicely with Next's webpack transpilation system.
+    console.log(WebTorrent)
+    const client = await getWebTorrentClient()
+
+    console.log(magnet_uri)
+
+    if(client.get(magnet_uri)) {
+        console.log('Torrent already exists')
+        return
+    }
+
+    const torrent = client.add(
+        magnet_uri,
+        // "magnet:?xt=urn:btih:9b3d43a4f63f6a4b8e399e8d869db20f38647cd3&dn=imlovingit.jpeg&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=wss%3A%2F%2Ftracker.openwebtorrent.com" 
+    )
+    torrent$ = torrent
+
+    const interval = setInterval(() => {
+        let entries = [
+            ['progress', (torrent.progress * 100).toFixed(1) + '%'],
+            ['peers', torrent.numPeers],
+            ['downloaded', byteSize(torrent.downloaded)]
+        ]
+        const s = entries.map(([key, value]) => `${key}: ${value}`).join(', ')
+        const o = entries.reduce((o, [key, value]) => ({ ...o, [key]: value }), {})
+        console.log(s)
+        setDLProgress(o)
+    }, 420) // lel
+
+    console.log('Client is downloading:', torrent.infoHash)
+
+    torrent.on('done', async () => {
+        console.log('Progress: 100%')
+        clearInterval(interval)
+        setDLProgress({
+            progress: 100,
+            peers: torrent.numPeers,
+            downloaded: byteSize(torrent.downloaded)
+        })
+
+        // Render all files into to the page
+        for (const file of torrent.files) {
+            try {
+                file.getBlobURL(function (err, url) {
+                    if (err) return console.log(err)
+
+                    // if file name matches an image regex
+                    const imageRegex = /\.(gif|jpe?g|tiff?|png|webp|bmp)$/i
+                    if (file.name.match(imageRegex)) {
+                        const img = document.createElement('img')
+                        img.src = url
+                        el.current.appendChild(img)
+                    } else {
+                        var a = document.createElement('a')
+                        a.target = '_blank'
+                        a.download = file.name
+                        a.href = url
+                        a.textContent = 'Download ' + file.name
+                        el.current.appendChild(a)
+                    }
+                })
+            } catch (err) {
+                if (err) console.error(err.message)
+            }
+        }
+    })
+}
+
 function UI({ poolId, torrent, magnet_uri, poolLabel }) {
     const account = useAccount()
     const { data: signer, isError, isLoading } = useSigner()
@@ -44,6 +127,18 @@ function UI({ poolId, torrent, magnet_uri, poolLabel }) {
 
     const el = useRef(null);
 
+    const [magnetObj, setMagnetObj] = useState(null)
+
+    useEffect(() => {
+        async function x() {
+            // Parse the magnet URI.
+            const parsed = await parseTorrent(magnet_uri)
+            console.log('parsed', parsed)
+            setMagnetObj(parsed)
+        }
+        x()
+    }, [])
+
     useEffect(() => {
         if (typeof window === 'undefined') return
         if (process.browser === false) return
@@ -51,96 +146,13 @@ function UI({ poolId, torrent, magnet_uri, poolLabel }) {
 
         setBrowserLoad(true)
 
-        async function loadWebTorrent(el) {
-            // let WebTorrent 
-            // try {
-            //     WebTorrent = (await import('webtorrent/dist/webtorrent.min.js')).default
-            // } catch(err) {
-            //     console.error(err)
-            //     return
-            // }
+        loadWebTorrent(magnet_uri, setDLProgress, el)
+    }, [browserLoad, magnet_uri, setDLProgress, el])
 
-            console.log(WebTorrent)
-            const client = new WebTorrent()
-
-            console.log(magnet_uri)
-            const torrent = client.add(
-                // magnet_uri,
-                "magnet:?xt=urn:btih:9b3d43a4f63f6a4b8e399e8d869db20f38647cd3&dn=imlovingit.jpeg&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=wss%3A%2F%2Ftracker.openwebtorrent.com" 
-            )
-            torrent$ = torrent
-
-            const interval = setInterval(() => {
-                let entries = [
-                    ['progress', (torrent.progress * 100).toFixed(1) + '%'],
-                    ['peers', torrent.numPeers],
-                    ['downloaded', byteSize(torrent.downloaded)]
-                ]
-                const s = entries.map(([key, value]) => `${key}: ${value}`).join(', ')
-                const o = entries.reduce((o, [key, value]) => ({ ...o, [key]: value }), {})
-                console.log(s)
-                setDLProgress(o)
-            }, 420) // lel
-
-            console.log('Client is downloading:', torrent.infoHash)
-
-            torrent.on('done', async () => {
-                console.log('Progress: 100%')
-                clearInterval(interval)
-                setDLProgress({
-                    progress: 100,
-                    peers: torrent.numPeers,
-                    downloaded: byteSize(torrent.downloaded)
-                })
-
-                // Render all files into to the page
-                for (const file of torrent.files) {
-                    try {
-                        file.getBlobURL(function (err, url) {
-                            if (err) return console.log(err)
-                            
-                            // if file name matches an image regex
-                            const imageRegex = /\.(gif|jpe?g|tiff?|png|webp|bmp)$/i
-                            if(file.name.match(imageRegex)) {
-                                const img = document.createElement('img')
-                                img.src = url
-                                el.current.appendChild(img)
-                            } else {
-                                var a = document.createElement('a')
-                                a.target = '_blank'
-                                a.download = file.name
-                                a.href = url
-                                a.textContent = 'Download ' + file.name
-                                el.current.appendChild(a)
-                            }
-                        })
-                    } catch (err) {
-                        if (err) console.error(err.message)
-                    }
-                }
-            })
-        }
-
-        loadWebTorrent(el)
-    }, [browserLoad, setDLProgress, el])
-
-    useEffect(() => {
-        const torrent = torrent$
-        if (!torrent) return
-
-        for (const file of torrent.files) {
-            try {
-                // debugger
-                // document.querySelector('.log').append(file.name)
-                console.log('(Blob URLs only work if the file is loaded from a server. "http//localhost" works. "file://" does not.)')
-                console.log('File done.')
-                console.log('<a href="' + URL.createObjectURL(blob) + '">Download full file: ' + file.name + '</a>')
-            } catch (err) {
-                if (err) console.error(err.message)
-            }
-        }
-
-    }, [])
+    let trackers = []
+    if (magnetObj) {
+        trackers = magnetObj.tr
+    }
 
     const ui = (
         <div className={layoutStyles.container}>
@@ -153,17 +165,29 @@ function UI({ poolId, torrent, magnet_uri, poolLabel }) {
 
             <main className={layoutStyles.main}>
                 <header>
-                    <div className={layoutStyles.backTo} onClick={() => router.push('/pools')}>
+                    <div className={layoutStyles.backTo} onClick={() => router.push(`/pools/${poolId}/view`)}>
                         <Image src="/back.png" width={48} height={48} />
-                        <span> Back to <Link href={`/pools/${poolId}/view`}><strong>${poolLabel}</strong></Link></span>
+                        <span> Back to <strong>${poolLabel}</strong></span>
                     </div>
                 </header>
 
                 <div className={styles.poolOverview}>
                     <h2>Downloading files...</h2>
-                    <p>{magnet_uri}</p>
-                    <p>Progress: {dlProgress.progress}</p>
-                    <p>Peers: {dlProgress.peers}</p>
+                    <p>
+                        {magnet_uri}
+                    </p>
+                    {dlProgress.downloaded != "100" && (<div>
+                        <p>Progress: {dlProgress.progress}</p>
+                        <p>Peers: {dlProgress.peers}</p>
+                    </div>)}
+                    
+                    {/* <p>
+                        Trackers: <ul>
+                            {trackers.map((tracker, i) => (
+                                <li key={i}>{tracker}</li>
+                            ))}
+                        </ul>
+                    </p> */}
                     <p>Downloaded: {dlProgress.downloaded.toString()}</p>
                     <div ref={el}/>
                 </div>

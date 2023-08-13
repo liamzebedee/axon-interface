@@ -83,6 +83,30 @@
     margin-top: 1rem;
 }
 
+.poolFilesTable {
+    text-align: left;
+}
+
+.poolFilesTable th {
+    font-size: 1.2rem;
+    font-weight: 300;
+    padding-bottom: 0.5rem;
+}
+
+.poolFilesTable td {
+    font-size: 1.2rem;
+    font-weight: 500;
+    padding-bottom: 0.5rem;
+}
+
+.poolFilesTable th, .poolFilesTable td {
+    padding-right: 1rem;
+}
+
+.poolFiles {
+    margin-bottom: 2rem;
+}
+
 .btn {
     background-color: #1e1b1c;
     color: white;
@@ -124,4 +148,3 @@
 .btn:focus {
     outline: none;
 }
-
